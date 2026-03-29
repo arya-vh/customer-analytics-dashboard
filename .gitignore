@@ -1,0 +1,17 @@
+# Virtual environment
+venv/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Pytest cache & coverage
+.pytest_cache/
+.coverage
+
+# Logs
+logs/
+
+# Output files (generated at runtime)
+output/
