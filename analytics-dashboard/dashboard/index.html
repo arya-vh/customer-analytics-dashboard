@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Customer Analytics — Dashboard</title>
+  <style>
+    /* ═══════════════════════════════════════════════
+       RESET & VARIABLES
+    ═══════════════════════════════════════════════ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:         #f0f2f7;
+      --surface:    #ffffff;
+      --border:     #e4e8f0;
+      --primary:    #4f46e5;
+      --primary-lt: #ede9fe;
+      --success:    #10b981;
+      --warning:    #f59e0b;
+      --danger:     #ef4444;
+      --text:       #1e293b;
+      --text-2:     #64748b;
+      --text-3:     #94a3b8;
+      --radius:     12px;
+      --shadow:     0 1px 3px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.06);
+      --shadow-lg:  0 8px 32px rgba(0,0,0,.12);
+      --sidebar-w:  380px;
+      --nav-h:      60px;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ═══════════════════════════════════════════════
+       TOP NAV
+    ═══════════════════════════════════════════════ */
+    .topnav {
+      height: var(--nav-h);
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 28px;
+      gap: 16px;
+      flex-shrink: 0;
+      box-shadow: 0 1px 0 var(--border);
+      z-index: 100;
+    }
+    .topnav-logo {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 18px; font-weight: 800; color: var(--primary);
+      letter-spacing: -.5px;
+    }
+    .topnav-logo-icon {
+      width: 34px; height: 34px;
+      background: var(--primary);
+      border-radius: 9px;
+      display: grid; place-items: center;
+      color: white; font-size: 16px;
+    }
+    .topnav-divider { width: 1px; height: 24px; background: var(--border); }
+    .topnav-title { font-size: 14px; color: var(--text-2); font-weight: 500; }
+    .topnav-spacer { flex: 1; }
+    .topnav-badge {
+      font-size: 12px; font-weight: 600;
+      background: var(--primary-lt); color: var(--primary);
+      padding: 4px 12px; border-radius: 20px;
+    }
+    .ai-toggle-btn {
+      display: flex; align-items: center; gap: 8px;
+      background: var(--primary); color: white;
+      border: none; border-radius: 9px;
+      padding: 8px 16px; font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: all .2s;
+    }
+    .ai-toggle-btn:hover { background: #4338ca; }
+    .ai-pulse {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #10b981;
+      box-shadow: 0 0 0 0 rgba(16,185,129,.4);
+      animation: pulse-ring 1.5s infinite;
+    }
+    @keyframes pulse-ring {
+      0%   { box-shadow: 0 0 0 0 rgba(16,185,129,.4); }
+      70%  { box-shadow: 0 0 0 6px rgba(16,185,129,0); }
+      100% { box-shadow: 0 0 0 0 rgba(16,185,129,0); }
+    }
+
+    /* ═══════════════════════════════════════════════
+       MAIN LAYOUT
+    ═══════════════════════════════════════════════ */
+    .layout {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ═══════════════════════════════════════════════
+       MAIN CONTENT
+    ═══════════════════════════════════════════════ */
+    .main {
+      flex: 1;
+      overflow-y: auto;
+      padding: 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    /* KPI strip */
+    .kpi-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+    .kpi-card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 20px 22px;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .kpi-label {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .6px; color: var(--text-2);
+    }
+    .kpi-value { font-size: 30px; font-weight: 800; line-height: 1; }
+    .kpi-sub { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+    .kpi-card.accent { background: var(--primary); border-color: var(--primary); }
+    .kpi-card.accent .kpi-label,
+    .kpi-card.accent .kpi-value,
+    .kpi-card.accent .kpi-sub { color: white; }
+
+    /* Table card */
+    .table-card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .table-header {
+      padding: 18px 22px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 12px;
+    }
+    .table-header h2 {
+      font-size: 15px; font-weight: 700; flex: 1;
+    }
+    .search-box {
+      display: flex; align-items: center; gap: 8px;
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 8px; padding: 7px 12px;
+      font-size: 13px;
+    }
+    .search-box input {
+      border: none; background: transparent; outline: none;
+      font-size: 13px; color: var(--text); width: 180px;
+    }
+    .filter-select {
+      border: 1px solid var(--border); border-radius: 8px;
+      padding: 7px 12px; font-size: 13px;
+      background: var(--bg); color: var(--text);
+      outline: none; cursor: pointer;
+    }
+
+    table { width: 100%; border-collapse: collapse; }
+    thead tr { background: var(--bg); }
+    th {
+      text-align: left;
+      font-size: 11px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .5px;
+      color: var(--text-2);
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    td {
+      padding: 13px 16px;
+      font-size: 13px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    tbody tr {
+      cursor: pointer;
+      transition: background .15s;
+    }
+    tbody tr:hover td { background: #f8fafc; }
+    tbody tr:last-child td { border-bottom: none; }
+
+    .customer-name-cell {
+      display: flex; align-items: center; gap: 10px;
+    }
+    .avatar {
+      width: 34px; height: 34px; border-radius: 50%;
+      display: grid; place-items: center;
+      font-size: 13px; font-weight: 700; color: white;
+      flex-shrink: 0;
+    }
+    .customer-id { font-size: 11px; color: var(--text-3); }
+
+    /* Segment badge */
+    .badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 3px 10px; border-radius: 20px;
+      font-size: 11px; font-weight: 700;
+    }
+    .badge-platinum { background: #dbeafe; color: #1d4ed8; }
+    .badge-gold     { background: #fef9c3; color: #92400e; }
+    .badge-silver   { background: #f1f5f9; color: #475569; }
+    .badge-bronze   { background: #fef3c7; color: #92400e; }
+    .badge-active   { background: #d1fae5; color: #065f46; }
+    .badge-inactive { background: #fee2e2; color: #991b1b; }
+    .badge-high     { background: #fee2e2; color: #b91c1c; }
+    .badge-low      { background: #d1fae5; color: #065f46; }
+
+    .amount { font-weight: 700; font-family: 'Courier New', monospace; }
+
+    /* ═══════════════════════════════════════════════
+       CUSTOMER DETAIL MODAL
+    ═══════════════════════════════════════════════ */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.45);
+      backdrop-filter: blur(4px);
+      z-index: 200;
+      display: none; align-items: center; justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+
+    .modal {
+      background: var(--surface);
+      border-radius: 18px;
+      width: 620px;
+      max-height: 88vh;
+      overflow-y: auto;
+      box-shadow: var(--shadow-lg);
+      animation: modalIn .25s cubic-bezier(.34,1.56,.64,1);
+    }
+    @keyframes modalIn {
+      from { opacity:0; transform:scale(.92) translateY(16px); }
+      to   { opacity:1; transform:scale(1)  translateY(0);     }
+    }
+
+    .modal-top {
+      padding: 28px 28px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: flex-start; gap: 16px;
+    }
+    .modal-avatar {
+      width: 56px; height: 56px; border-radius: 14px;
+      display: grid; place-items: center;
+      font-size: 22px; font-weight: 800; color: white;
+      flex-shrink: 0;
+    }
+    .modal-name { font-size: 20px; font-weight: 800; }
+    .modal-id   { font-size: 12px; color: var(--text-2); margin-top: 2px; }
+    .modal-badges { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+    .modal-close {
+      margin-left: auto; background: var(--bg);
+      border: none; border-radius: 8px; width: 32px; height: 32px;
+      cursor: pointer; font-size: 18px; color: var(--text-2);
+      display: grid; place-items: center; flex-shrink: 0;
+    }
+    .modal-close:hover { background: var(--border); }
+
+    .modal-body { padding: 24px 28px; display: flex; flex-direction: column; gap: 24px; }
+
+    .metrics-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+    }
+    .metric-box {
+      background: var(--bg); border-radius: 10px; padding: 14px 16px;
+      border: 1px solid var(--border);
+    }
+    .metric-box-label { font-size: 11px; color: var(--text-2); font-weight: 600; text-transform: uppercase; letter-spacing: .4px; margin-bottom: 6px; }
+    .metric-box-value { font-size: 20px; font-weight: 800; }
+
+    .section-title {
+      font-size: 12px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .5px; color: var(--text-2); margin-bottom: 10px;
+    }
+
+    .detail-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+    }
+    .detail-row {
+      display: flex; justify-content: space-between; align-items: center;
+      background: var(--bg); border-radius: 8px; padding: 10px 14px;
+      border: 1px solid var(--border);
+    }
+    .detail-key   { font-size: 12px; color: var(--text-2); font-weight: 500; }
+    .detail-value { font-size: 13px; font-weight: 700; }
+
+    .coupon-box {
+      background: var(--primary-lt);
+      border: 2px dashed var(--primary);
+      border-radius: 10px; padding: 14px 18px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .coupon-label { font-size: 11px; color: var(--primary); font-weight: 700; text-transform: uppercase; letter-spacing: .5px; }
+    .coupon-code  { font-size: 20px; font-weight: 800; color: var(--primary); font-family: monospace; letter-spacing: 2px; }
+
+    .modal-footer {
+      padding: 16px 28px;
+      border-top: 1px solid var(--border);
+      display: flex; gap: 10px;
+    }
+    .btn {
+      padding: 10px 20px; border-radius: 9px; border: none;
+      font-size: 13px; font-weight: 700; cursor: pointer; transition: all .2s;
+    }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: #4338ca; }
+    .btn-outline {
+      background: transparent; color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-outline:hover { background: var(--bg); }
+
+    /* ═══════════════════════════════════════════════
+       AI CHAT SIDEBAR
+    ═══════════════════════════════════════════════ */
+    .chat-sidebar {
+      width: var(--sidebar-w);
+      background: var(--surface);
+      border-left: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      transition: width .3s cubic-bezier(.4,0,.2,1);
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .chat-sidebar.collapsed { width: 0; border-left: none; }
+
+    .chat-head {
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 10px;
+      background: linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%);
+      flex-shrink: 0;
+    }
+    .chat-head-icon {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: rgba(255,255,255,.2);
+      display: grid; place-items: center; font-size: 18px;
+    }
+    .chat-head-title { font-size: 14px; font-weight: 700; color: white; }
+    .chat-head-sub   { font-size: 11px; color: rgba(255,255,255,.7); }
+    .chat-head-close {
+      margin-left: auto; background: rgba(255,255,255,.15);
+      border: none; border-radius: 7px; width: 28px; height: 28px;
+      cursor: pointer; font-size: 16px; color: white;
+      display: grid; place-items: center;
+    }
+    .chat-head-close:hover { background: rgba(255,255,255,.25); }
+
+    /* Quick prompts */
+    .chat-quick {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      display: flex; gap: 6px; flex-wrap: wrap;
+      flex-shrink: 0;
+    }
+    .quick-chip {
+      font-size: 11px; font-weight: 600;
+      background: var(--primary-lt); color: var(--primary);
+      border: 1px solid #c4b5fd;
+      border-radius: 20px; padding: 4px 10px;
+      cursor: pointer; transition: all .15s; white-space: nowrap;
+    }
+    .quick-chip:hover { background: var(--primary); color: white; }
+
+    /* Messages */
+    .chat-messages {
+      flex: 1; overflow-y: auto;
+      padding: 16px 14px;
+      display: flex; flex-direction: column; gap: 14px;
+    }
+    .chat-messages::-webkit-scrollbar { width: 4px; }
+    .chat-messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .msg { display: flex; gap: 8px; animation: msgIn .2s ease both; }
+    @keyframes msgIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; } }
+
+    .msg-bot { align-items: flex-start; }
+    .msg-user { flex-direction: row-reverse; align-items: flex-start; }
+
+    .msg-icon {
+      width: 30px; height: 30px; border-radius: 9px;
+      display: grid; place-items: center; font-size: 14px; flex-shrink: 0;
+    }
+    .msg-bot  .msg-icon { background: var(--primary-lt); }
+    .msg-user .msg-icon { background: var(--primary); }
+
+    .msg-bubble {
+      max-width: 260px; padding: 10px 13px; border-radius: 12px;
+      font-size: 13px; line-height: 1.55;
+    }
+    .msg-bot  .msg-bubble { background: var(--bg); border: 1px solid var(--border); border-top-left-radius: 4px; }
+    .msg-user .msg-bubble { background: var(--primary); color: white; border-top-right-radius: 4px; }
+
+    .msg-bubble pre {
+      white-space: pre-wrap; font-family: inherit;
+      font-size: 12px; margin: 0;
+    }
+
+    /* Typing indicator */
+    .typing-dots {
+      display: flex; gap: 4px; padding: 4px 2px;
+    }
+    .typing-dots span {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--text-3);
+      animation: dot-bounce .9s infinite;
+    }
+    .typing-dots span:nth-child(2) { animation-delay: .15s; }
+    .typing-dots span:nth-child(3) { animation-delay: .30s; }
+    @keyframes dot-bounce {
+      0%,80%,100% { transform: translateY(0); }
+      40%          { transform: translateY(-6px); }
+    }
+
+    /* Chat input */
+    .chat-input-area {
+      padding: 12px 14px;
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+      flex-shrink: 0;
+    }
+    .chat-input-row {
+      display: flex; gap: 8px; align-items: flex-end;
+    }
+    .chat-textarea {
+      flex: 1; resize: none; border: 1px solid var(--border);
+      border-radius: 10px; padding: 10px 12px;
+      font-family: inherit; font-size: 13px; color: var(--text);
+      background: var(--bg); outline: none; max-height: 100px;
+      line-height: 1.5; transition: border-color .2s;
+    }
+    .chat-textarea:focus { border-color: var(--primary); background: white; }
+    .chat-send-btn {
+      width: 38px; height: 38px; border-radius: 10px;
+      background: var(--primary); border: none; color: white;
+      cursor: pointer; display: grid; place-items: center;
+      font-size: 16px; flex-shrink: 0; transition: all .2s;
+    }
+    .chat-send-btn:hover { background: #4338ca; transform: scale(1.05); }
+    .chat-send-btn:disabled { background: var(--border); cursor: default; transform: none; }
+    .chat-hint {
+      font-size: 10px; color: var(--text-3); margin-top: 6px;
+      text-align: center;
+    }
+
+    /* ═══════════════════════════════════════════════
+       EMPTY STATE
+    ═══════════════════════════════════════════════ */
+    .empty-state {
+      text-align: center; padding: 60px 20px; color: var(--text-3);
+    }
+    .empty-state-icon { font-size: 40px; margin-bottom: 12px; }
+    .empty-state p { font-size: 14px; }
+
+    /* ═══════════════════════════════════════════════
+       SCROLLBAR
+    ═══════════════════════════════════════════════ */
+    .main::-webkit-scrollbar { width: 6px; }
+    .main::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<!-- TOP NAV -->
+<nav class="topnav">
+  <div class="topnav-logo">
+    <div class="topnav-logo-icon">📊</div>
+    AnalyticsPro
+  </div>
+  <div class="topnav-divider"></div>
+  <span class="topnav-title">Customer Billing & Loyalty Dashboard</span>
+  <div class="topnav-spacer"></div>
+  <span class="topnav-badge" id="periodBadge">May 2024</span>
+  <button class="ai-toggle-btn" onclick="toggleChat()">
+    <div class="ai-pulse"></div>
+    AI Assistant
+  </button>
+</nav>
+
+<!-- LAYOUT -->
+<div class="layout">
+
+  <!-- MAIN CONTENT -->
+  <main class="main">
+
+    <!-- KPI CARDS -->
+    <div class="kpi-row" id="kpiRow">
+      <div class="kpi-card accent">
+        <div class="kpi-label">Total Customers</div>
+        <div class="kpi-value" id="kpiTotal">—</div>
+        <div class="kpi-sub">All segments</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Total Revenue</div>
+        <div class="kpi-value" id="kpiRevenue">—</div>
+        <div class="kpi-sub" id="kpiRevSub">DELIVERED orders</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Active Customers</div>
+        <div class="kpi-value" style="color:var(--success)" id="kpiActive">—</div>
+        <div class="kpi-sub" id="kpiActiveSub">—</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">High Churn Risk</div>
+        <div class="kpi-value" style="color:var(--danger)" id="kpiChurn">—</div>
+        <div class="kpi-sub">Need attention</div>
+      </div>
+    </div>
+
+    <!-- CUSTOMER TABLE -->
+    <div class="table-card">
+      <div class="table-header">
+        <h2>Customer Billing Records</h2>
+        <div class="search-box">
+          <span>🔍</span>
+          <input type="text" id="searchInput" placeholder="Search name or ID…" oninput="renderTable()" />
+        </div>
+        <select class="filter-select" id="segmentFilter" onchange="renderTable()">
+          <option value="">All Segments</option>
+          <option value="PLATINUM">Platinum</option>
+          <option value="GOLD">Gold</option>
+          <option value="SILVER">Silver</option>
+          <option value="BRONZE">Bronze</option>
+        </select>
+        <select class="filter-select" id="statusFilter" onchange="renderTable()">
+          <option value="">All Status</option>
+          <option value="ACTIVE_CUSTOMER">Active</option>
+          <option value="INACTIVE_CUSTOMER">Inactive</option>
+        </select>
+      </div>
+
+      <div style="overflow-x:auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>Customer</th>
+              <th>Orders</th>
+              <th>Total Spent</th>
+              <th>Avg. Order</th>
+              <th>Segment</th>
+              <th>Status</th>
+              <th>Churn Risk</th>
+              <th>Coupon</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </main><!-- /main -->
+
+  <!-- AI CHAT SIDEBAR -->
+  <aside class="chat-sidebar" id="chatSidebar">
+    <div class="chat-head">
+      <div class="chat-head-icon">🤖</div>
+      <div>
+        <div class="chat-head-title">AI Analytics Assistant</div>
+        <div class="chat-head-sub">Powered by Ollama llama3</div>
+      </div>
+      <button class="chat-head-close" onclick="toggleChat()">✕</button>
+    </div>
+
+    <!-- Quick prompts -->
+    <div class="chat-quick" id="quickPrompts">
+      <span class="quick-chip" onclick="sendQuick('Give me an overall summary of all customers')">📊 Summary</span>
+      <span class="quick-chip" onclick="sendQuick('Who are the high churn risk customers?')">🚨 Churn Risk</span>
+      <span class="quick-chip" onclick="sendQuick('Which customers should be upsold to Platinum?')">⬆️ Upsell</span>
+      <span class="quick-chip" onclick="sendQuick('Who are the top spending customers?')">💰 Top Spenders</span>
+    </div>
+
+    <div class="chat-messages" id="chatMessages">
+      <!-- Welcome message -->
+      <div class="msg msg-bot">
+        <div class="msg-icon">🤖</div>
+        <div class="msg-bubble">
+          👋 Hi! I'm your Analytics Assistant.<br><br>
+          Ask me about any customer by name or ID, or use the quick prompts above.<br><br>
+          <strong>Try:</strong> "Give me a full report on Rahul Sharma"
+        </div>
+      </div>
+    </div>
+
+    <div class="chat-input-area">
+      <div class="chat-input-row">
+        <textarea
+          class="chat-textarea"
+          id="chatInput"
+          rows="2"
+          placeholder="Ask about a customer or the data…"
+          onkeydown="handleKey(event)"
+        ></textarea>
+        <button class="chat-send-btn" id="sendBtn" onclick="sendMessage()">➤</button>
+      </div>
+      <div class="chat-hint">Enter to send · Shift+Enter for new line</div>
+    </div>
+  </aside>
+
+</div><!-- /layout -->
+
+<!-- CUSTOMER DETAIL MODAL -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+  <div class="modal" id="modal">
+    <div class="modal-top" id="modalTop"></div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" id="modalAskAI" onclick="askAIAboutCustomer()">🤖 Ask AI about this customer</button>
+      <button class="btn btn-outline" onclick="closeModalDirect()">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════════════════════ */
+let allCustomers = [];
+let selectedCustomer = null;
+let chatOpen = true;
+
+const AVATAR_COLORS = [
+  '#4f46e5','#7c3aed','#db2777','#059669',
+  '#d97706','#dc2626','#0891b2','#65a30d',
+];
+
+/* ═══════════════════════════════════════════════════════════
+   BOOT
+═══════════════════════════════════════════════════════════ */
+window.addEventListener('DOMContentLoaded', async () => {
+  await fetchCustomers();
+});
+
+async function fetchCustomers() {
+  try {
+    const res  = await fetch('/api/customers');
+    allCustomers = await res.json();
+    renderKPIs();
+    renderTable();
+  } catch (e) {
+    document.getElementById('tableBody').innerHTML = `
+      <tr><td colspan="8" style="text-align:center;padding:40px;color:#888;">
+        ⚠️ Could not connect to the Flask server.<br>
+        Make sure <code>analytics_server.py</code> is running.
+      </td></tr>`;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   KPIs
+═══════════════════════════════════════════════════════════ */
+function renderKPIs() {
+  const total   = allCustomers.length;
+  const revenue = allCustomers.reduce((s, c) => s + parseFloat(c.total_spent || 0), 0);
+  const active  = allCustomers.filter(c => c.customer_activity_status === 'ACTIVE_CUSTOMER').length;
+  const churn   = allCustomers.filter(c => c.churn_risk === 'HIGH').length;
+
+  document.getElementById('kpiTotal').textContent   = total;
+  document.getElementById('kpiRevenue').textContent = '₹' + revenue.toLocaleString('en-IN');
+  document.getElementById('kpiActive').textContent  = active;
+  document.getElementById('kpiActiveSub').textContent = `${Math.round(active/total*100)}% of total`;
+  document.getElementById('kpiChurn').textContent   = churn;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   TABLE
+═══════════════════════════════════════════════════════════ */
+function renderTable() {
+  const search  = document.getElementById('searchInput').value.toLowerCase();
+  const segFilt = document.getElementById('segmentFilter').value;
+  const stFilt  = document.getElementById('statusFilter').value;
+
+  const filtered = allCustomers.filter(c => {
+    const matchSearch = c.customer_name.toLowerCase().includes(search) ||
+                        c.customer_id.toLowerCase().includes(search);
+    const matchSeg    = !segFilt || c.loyalty_segment === segFilt;
+    const matchSt     = !stFilt  || c.customer_activity_status === stFilt;
+    return matchSearch && matchSeg && matchSt;
+  });
+
+  const tbody = document.getElementById('tableBody');
+
+  if (!filtered.length) {
+    tbody.innerHTML = `<tr><td colspan="8">
+      <div class="empty-state">
+        <div class="empty-state-icon">🔍</div>
+        <p>No customers match the current filters.</p>
+      </div></td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtered.map((c, i) => {
+    const color   = AVATAR_COLORS[i % AVATAR_COLORS.length];
+    const initials = c.customer_name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
+    const segClass = 'badge-' + c.loyalty_segment.toLowerCase();
+    const stClass  = c.customer_activity_status === 'ACTIVE_CUSTOMER' ? 'badge-active' : 'badge-inactive';
+    const stLabel  = c.customer_activity_status === 'ACTIVE_CUSTOMER' ? '● Active' : '○ Inactive';
+    const crClass  = (c.churn_risk === 'HIGH') ? 'badge-high' : 'badge-low';
+    const crLabel  = c.churn_risk || 'LOW';
+
+    return `
+    <tr onclick="openModal('${c.customer_id}')">
+      <td>
+        <div class="customer-name-cell">
+          <div class="avatar" style="background:${color}">${initials}</div>
+          <div>
+            <div style="font-weight:600">${c.customer_name}</div>
+            <div class="customer-id">${c.customer_id}</div>
+          </div>
+        </div>
+      </td>
+      <td><strong>${c.total_orders}</strong></td>
+      <td class="amount">₹${parseFloat(c.total_spent).toLocaleString('en-IN', {minimumFractionDigits:2})}</td>
+      <td class="amount">₹${parseFloat(c.average_order_value).toLocaleString('en-IN', {minimumFractionDigits:2})}</td>
+      <td><span class="badge ${segClass}">${c.loyalty_segment}</span></td>
+      <td><span class="badge ${stClass}">${stLabel}</span></td>
+      <td><span class="badge ${crClass}">${crLabel}</span></td>
+      <td><code style="font-size:11px;background:#f0f2f7;padding:3px 8px;border-radius:6px;color:var(--primary)">${c.coupon_code || 'N/A'}</code></td>
+    </tr>`;
+  }).join('');
+}
+
+/* ═══════════════════════════════════════════════════════════
+   MODAL
+═══════════════════════════════════════════════════════════ */
+function openModal(customerId) {
+  const c = allCustomers.find(x => x.customer_id === customerId);
+  if (!c) return;
+  selectedCustomer = c;
+
+  const idx     = allCustomers.indexOf(c);
+  const color   = AVATAR_COLORS[idx % AVATAR_COLORS.length];
+  const initials = c.customer_name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
+  const segClass = 'badge-' + c.loyalty_segment.toLowerCase();
+  const stClass  = c.customer_activity_status === 'ACTIVE_CUSTOMER' ? 'badge-active' : 'badge-inactive';
+  const stLabel  = c.customer_activity_status === 'ACTIVE_CUSTOMER' ? '● Active' : '● Inactive';
+  const crClass  = c.churn_risk === 'HIGH' ? 'badge-high' : 'badge-low';
+
+  document.getElementById('modalTop').innerHTML = `
+    <div class="modal-avatar" style="background:${color}">${initials}</div>
+    <div>
+      <div class="modal-name">${c.customer_name}</div>
+      <div class="modal-id">Customer ID: ${c.customer_id}</div>
+      <div class="modal-badges">
+        <span class="badge ${segClass}">${c.loyalty_segment}</span>
+        <span class="badge ${stClass}">${stLabel}</span>
+        <span class="badge ${crClass}">Churn: ${c.churn_risk || 'LOW'}</span>
+      </div>
+    </div>
+    <button class="modal-close" onclick="closeModalDirect()">✕</button>`;
+
+  document.getElementById('modalBody').innerHTML = `
+    <!-- Metrics -->
+    <div>
+      <div class="section-title">Billing Summary</div>
+      <div class="metrics-grid">
+        <div class="metric-box">
+          <div class="metric-box-label">Total Orders</div>
+          <div class="metric-box-value">${c.total_orders}</div>
+        </div>
+        <div class="metric-box">
+          <div class="metric-box-label">Total Spent</div>
+          <div class="metric-box-value" style="color:var(--primary)">₹${parseFloat(c.total_spent).toLocaleString('en-IN')}</div>
+        </div>
+        <div class="metric-box">
+          <div class="metric-box-label">Avg. Order Value</div>
+          <div class="metric-box-value">₹${parseFloat(c.average_order_value).toLocaleString('en-IN')}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Details -->
+    <div>
+      <div class="section-title">Account Details</div>
+      <div class="detail-grid">
+        <div class="detail-row">
+          <span class="detail-key">Loyalty Segment</span>
+          <span class="detail-value"><span class="badge ${segClass}">${c.loyalty_segment}</span></span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-key">Activity Status</span>
+          <span class="detail-value"><span class="badge ${stClass}">${stLabel}</span></span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-key">Churn Risk</span>
+          <span class="detail-value"><span class="badge ${crClass}">${c.churn_risk || 'LOW'}</span></span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-key">Revenue (DELIVERED)</span>
+          <span class="detail-value">₹${parseFloat(c.total_spent).toLocaleString('en-IN', {minimumFractionDigits:2})}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Coupon -->
+    ${c.coupon_code && c.coupon_code !== 'N/A' ? `
+    <div>
+      <div class="section-title">Assigned Discount Coupon</div>
+      <div class="coupon-box">
+        <div>
+          <div class="coupon-label">Loyalty Discount Code</div>
+          <div class="coupon-code">${c.coupon_code}</div>
+        </div>
+        <span style="font-size:28px">🎟️</span>
+      </div>
+    </div>` : ''}
+  `;
+
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
+function closeModal(e) {
+  if (e.target === document.getElementById('modalOverlay')) closeModalDirect();
+}
+function closeModalDirect() {
+  document.getElementById('modalOverlay').classList.remove('open');
+  selectedCustomer = null;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   CHAT
+═══════════════════════════════════════════════════════════ */
+function toggleChat() {
+  chatOpen = !chatOpen;
+  document.getElementById('chatSidebar').classList.toggle('collapsed', !chatOpen);
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+}
+
+function sendQuick(text) {
+  document.getElementById('chatInput').value = text;
+  sendMessage();
+}
+
+function askAIAboutCustomer() {
+  if (!selectedCustomer) return;
+  closeModalDirect();
+  if (!chatOpen) toggleChat();
+  const prompt = `Give me a full professional report on ${selectedCustomer.customer_name} (${selectedCustomer.customer_id})`;
+  document.getElementById('chatInput').value = prompt;
+  sendMessage();
+}
+
+async function sendMessage() {
+  const input = document.getElementById('chatInput');
+  const text  = input.value.trim();
+  if (!text) return;
+
+  appendMsg('user', text);
+  input.value = '';
+
+  const sendBtn = document.getElementById('sendBtn');
+  sendBtn.disabled = true;
+
+  const typingId = appendTyping();
+
+  try {
+    const res  = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: text }),
+    });
+    const data = await res.json();
+    removeTyping(typingId);
+    appendMsg('bot', data.response || '⚠️ No response received.');
+  } catch (e) {
+    removeTyping(typingId);
+    appendMsg('bot', '⚠️ Cannot reach the server. Is Flask running?');
+  } finally {
+    sendBtn.disabled = false;
+  }
+}
+
+function appendMsg(role, text) {
+  const box = document.getElementById('chatMessages');
+  const div = document.createElement('div');
+  div.className = `msg msg-${role}`;
+  div.innerHTML = `
+    <div class="msg-icon">${role === 'bot' ? '🤖' : '👤'}</div>
+    <div class="msg-bubble"><pre>${escHtml(text)}</pre></div>`;
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+  return div;
+}
+
+function appendTyping() {
+  const box = document.getElementById('chatMessages');
+  const id  = 'typing-' + Date.now();
+  const div = document.createElement('div');
+  div.className = 'msg msg-bot';
+  div.id = id;
+  div.innerHTML = `
+    <div class="msg-icon">🤖</div>
+    <div class="msg-bubble">
+      <div class="typing-dots"><span></span><span></span><span></span></div>
+    </div>`;
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+  return id;
+}
+
+function removeTyping(id) {
+  const el = document.getElementById(id);
+  if (el) el.remove();
+}
+
+function escHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+</script>
+</body>
+</html>
